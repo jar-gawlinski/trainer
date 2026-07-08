@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Train">
+<meta name="theme-color" content="#2C2E1E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Train</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #2C2E1E;
+    --paper: #FAF7F2;
+    --stone: #F0EBE1;
+    --sage: #7A8C6E;
+    --clay: #C4956A;
+    --clay-light: #E8C9A8;
+    --muted: #9A9585;
+    --border: #DDD8CF;
+    --card: #FFFFFF;
+    --danger: #B85C50;
+    --success: #5E7A5A;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 20px 20px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .day-label {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+
+  .day-label em {
+    font-style: italic;
+    color: var(--clay-light);
+  }
+
+  .date-label {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+  }
+
+  .btn-ghost {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--paper);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.72rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+
+  .btn-ghost:active { opacity: 0.7; }
+
+  .focus-tag {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(196,149,106,0.2);
+    border: 1px solid rgba(196,149,106,0.3);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--clay-light);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* PROGRESS BAR */
+  .progress-bar-wrap {
+    background: var(--stone);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+
+  .progress-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--sage);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* PHASE SECTIONS */
+  .phase-block {
+    padding: 20px 16px 0;
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .phase-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .phase-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* EXERCISE CARDS */
+  .exercise-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .exercise-card.done {
+    border-color: var(--sage);
+    background: #F6FAF5;
+  }
+
+  .exercise-card.done .ex-name {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  .ex-top {
+    display: flex;
+    align-items: center;
+    padding: 14px 14px 12px;
+    gap: 12px;
+    cursor: pointer;
+  }
+
+  .ex-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .exercise-card.done .ex-check {
+    background: var(--sage);
+    border-color: var(--sage);
+  }
+
+  .ex-check svg { display: none; }
+  .exercise-card.done .ex-check svg { display: block; }
+
+  .ex-info { flex: 1; min-width: 0; }
+
+  .ex-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+
+  .ex-meta {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 2px;
+    font-weight: 400;
+  }
+
+  .ex-hint {
+    font-size: 0.68rem;
+    color: var(--clay);
+    margin-top: 3px;
+    font-style: italic;
+    line-height: 1.3;
+  }
+
+  .ex-expand {
+    color: var(--muted);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  .exercise-card.expanded .ex-expand { transform: rotate(180deg); }
+
+  /* LOG FIELDS */
+  .ex-fields {
+    display: none;
+    padding: 0 14px 14px;
+    border-top: 1px solid var(--stone);
+    margin-top: 0;
+  }
+
+  .exercise-card.expanded .ex-fields { display: block; }
+
+  .fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .fields-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+  .field-group { display: flex; flex-direction: column; gap: 4px; }
+
+  .field-label {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .field-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--stone);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 28px 9px 10px;
+    font-size: 0.82rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    width: 100%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239A9585' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  .field-select:focus {
+    outline: none;
+    border-color: var(--clay);
+  }
+
+  .field-notes {
+    margin-top: 10px;
+  }
+
+  .field-notes textarea {
+    width: 100%;
+    background: var(--stone);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 0.82rem;
+    font-family: 'Inter', sans-serif;
+    color: var(--ink);
+    resize: none;
+    min-height: 60px;
+  }
+
+  .field-notes textarea:focus {
+    outline: none;
+    border-color: var(--clay);
+  }
+
+  .field-notes textarea::placeholder { color: var(--muted); }
+
+  .btn-done {
+    width: 100%;
+    margin-top: 12px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 0.8rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .exercise-card.done .btn-done {
+    background: var(--sage);
+  }
+
+  .btn-done:active { opacity: 0.8; }
+
+  /* SESSION NOTES */
+  .session-footer {
+    margin: 20px 16px 0;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+  }
+
+  .footer-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    margin-bottom: 14px;
+    color: var(--ink);
+  }
+
+  .footer-fields { display: flex; flex-direction: column; gap: 10px; }
+
+  .footer-row { display: flex; flex-direction: column; gap: 4px; }
+
+  .footer-row label {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .footer-row select,
+  .footer-row textarea {
+    width: 100%;
+    background: var(--stone);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 0.82rem;
+    font-family: 'Inter', sans-serif;
+    color: var(--ink);
+  }
+
+  .footer-row select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239A9585' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+
+  .footer-row select:focus,
+  .footer-row textarea:focus { outline: none; border-color: var(--clay); }
+
+  .footer-row textarea { resize: none; min-height: 70px; }
+  .footer-row textarea::placeholder { color: var(--muted); }
+
+  .btn-save {
+    width: 100%;
+    margin-top: 14px;
+    background: var(--clay);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 0.85rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .btn-save:active { opacity: 0.85; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(44,46,30,0.6);
+    z-index: 200;
+    align-items: flex-end;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--paper);
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+
+  .modal-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .modal-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.3rem;
+    margin-bottom: 16px;
+  }
+
+  .modal-section-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 14px 0 8px;
+  }
+
+  .day-picker {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .day-btn {
+    background: var(--stone);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 4px;
+    font-size: 0.78rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: center;
+  }
+
+  .day-btn.active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+
+  .day-btn:active { opacity: 0.7; }
+
+  .modal-close {
+    width: 100%;
+    margin-top: 20px;
+    background: var(--stone);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 0.8rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    z-index: 300;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* HISTORY VIEW */
+  .history-list { padding: 16px; }
+
+  .history-item {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+
+  .history-date {
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .history-day {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    margin: 2px 0 6px;
+  }
+
+  .history-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .history-stat strong { color: var(--ink); font-weight: 600; }
+
+  .history-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .history-empty p:first-child {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.3rem;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  /* NAV */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 0 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.58rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: color 0.15s;
+  }
+
+  .nav-btn.active { color: var(--clay); }
+  .nav-btn svg { width: 20px; height: 20px; }
+
+  /* VIEWS */
+  .view { display: none; }
+  .view.active { display: block; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-top">
+    <div>
+      <div class="day-label" id="headerDay">Loading</div>
+      <div class="date-label" id="headerDate"></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-ghost" onclick="openSettings()">Program</button>
+      <button class="btn-ghost" onclick="openModal()">Change day</button>
+    </div>
+  </div>
+  <div class="focus-tag" id="focusTag"></div>
+</header>
+
+<div id="deloadBanner" style="display:none;background:#F5EDE3;border-bottom:1px solid var(--clay-light);padding:10px 20px;font-size:0.75rem;color:var(--ink);line-height:1.5;font-weight:500"></div>
+
+<div id="dayNote" style="display:none;background:#F5F0E8;border-bottom:1px solid var(--border);padding:10px 20px;font-size:0.75rem;color:var(--muted);line-height:1.5"></div>
+
+<div class="progress-bar-wrap" id="progressWrap" style="display:none">
+  <div class="progress-meta">
+    <span id="progressText">0 of 0 done</span>
+    <span id="progressPct">0%</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+</div>
+
+<!-- SESSION VIEW -->
+<div class="view active" id="viewSession">
+  <div id="exerciseArea"></div>
+
+  <div class="session-footer">
+    <div class="footer-title">Session notes</div>
+    <div class="footer-fields">
+      <div class="footer-row">
+        <label>Overall RPE</label>
+        <select id="sessionRPE">
+          <option value="">— select —</option>
+          <option>1 — Very easy</option>
+          <option>2 — Easy</option>
+          <option>3 — Moderate</option>
+          <option>4 — Somewhat hard</option>
+          <option>5 — Hard</option>
+          <option>6 — Hard+</option>
+          <option>7 — Very hard</option>
+          <option>8 — Very hard+</option>
+          <option>9 — Extremely hard</option>
+          <option>10 — Max effort</option>
+        </select>
+      </div>
+      <div class="footer-row">
+        <label>Pain or discomfort</label>
+        <select id="sessionPain">
+          <option value="">— select —</option>
+          <option>None</option>
+          <option>Mild muscle</option>
+          <option>Moderate muscle</option>
+          <option>Joint / sharp ⚠️</option>
+        </select>
+      </div>
+      <div class="footer-row">
+        <label>How it felt</label>
+        <textarea id="sessionFeel" placeholder="What went well, what to adjust..."></textarea>
+      </div>
+    </div>
+    <button class="btn-save" onclick="saveSession()">Save session</button>
+  </div>
+</div>
+
+<!-- HISTORY VIEW -->
+<div class="view" id="viewHistory">
+  <div class="history-list" id="historyList"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="navSession" onclick="switchView('session')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <rect x="3" y="3" width="18" height="18" rx="3"/>
+      <path d="M8 12h8M8 8h5M8 16h3"/>
+    </svg>
+    Today
+  </button>
+  <button class="nav-btn" id="navHistory" onclick="switchView('history')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M12 8v4l3 3"/>
+      <circle cx="12" cy="12" r="9"/>
+    </svg>
+    History
+  </button>
+</nav>
+
+<!-- DAY PICKER MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Choose a day</div>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px">Auto-detected today. Override if needed.</p>
+    <div class="modal-section-label">Training days</div>
+    <div class="day-picker" id="dayPicker"></div>
+    <button class="modal-close" onclick="closeModal()">Done</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DAYS = {
+  Sunday: {
+    focus: 'Heavy Squat/DL + Bouldering — Gym',
+    note: 'Squat and deadlift come first while fresh — this is your only real heavy strength stimulus all week. Bouldering after, technique-focused rather than limit grades. Chasing a hard project today? Flip the order — otherwise lift first. Target ~2 RIR on the main lifts.',
+    phases: [
+      { name: 'Home Warm-up (before leaving)', exercises: [
+        { name: 'Leg swings — front/back', meta: '10 each direction', fields: ['reps'] },
+        { name: 'Leg swings — side/side', meta: '10 each direction', fields: ['reps'] },
+        { name: 'Hip openers on yoga block', meta: '30s per side', fields: ['hold'] },
+        { name: 'Ankle mobility — foam wedge rocks', meta: '10 each side', fields: ['reps'] },
+        { name: 'Band pull-aparts', meta: '2×15', fields: ['sets','reps'] },
+        { name: 'Scapular pulls on pull-up bar', meta: '2×8', fields: ['sets','reps'] },
+        { name: 'Arm circles', meta: '20 each direction', fields: ['reps'] },
+        { name: 'Dead hangs', meta: '2×20s — primes grip without pre-fatiguing', fields: ['sets','hold'] },
+        { name: 'Finger extensor band work', meta: '1×15 — activation only', fields: ['sets','reps'] },
+      ]},
+      { name: 'Main — Gym Session (in order)', exercises: [
+        { name: 'Barbell squat', meta: '4×6–8 · target ~2 RIR', fields: ['sets','reps','weight','rpe'] },
+        { name: 'Barbell deadlift', meta: '3×5–6 · target ~2 RIR', fields: ['sets','reps','weight','rpe'] },
+        { name: 'Bouldering', meta: 'Technique/movement focus, moderate grades — not limit sends by default', fields: ['rpe'] },
+        { name: 'Weighted pull-ups (belt)', meta: '3×5 · light finisher, lower priority when already fatigued', fields: ['sets','reps','weight','rpe'] },
+      ]},
+      { name: 'Post-session Cool-down', exercises: [
+        { name: 'Finger/forearm stretches', meta: '30s each position', fields: ['hold'] },
+        { name: 'Lacrosse ball on forearms', meta: '2 min per side', fields: [] },
+        { name: 'Calf and quad stretch', meta: '30s each', fields: ['hold'] },
+        { name: 'Passive lat hang', meta: '2×20s', fields: ['sets','hold'] },
+        { name: 'Foam/spiky roll — calves and feet', meta: '2 min', fields: [] },
+      ]},
+    ]
+  },
+  Monday: {
+    focus: 'Push + Pull (Volume) + Easy Run',
+    note: 'Zone 2 run ~6km, flexible order. Target ~2 RIR across the board. Progression: once you hit the top of a rep range on all sets at 2 RIR, add difficulty (tempo/deficit/unilateral) or belt weight next session.',
+    phases: [
+      { name: 'Warm-up', exercises: [
+        { name: 'Arm circles', meta: '20 each direction', fields: ['reps'] },
+        { name: 'Band pull-aparts', meta: '2×15', fields: ['sets','reps'] },
+        { name: 'Scap push-ups', meta: '2×10', fields: ['sets','reps'] },
+        { name: 'Wrist circles + flexor/extensor stretch', meta: '30s each', fields: ['hold'] },
+        { name: 'Cat-cow', meta: '10 reps', fields: ['reps'] },
+        { name: 'Easy incline push-ups — ramp', meta: '2×10', fields: ['sets','reps'] },
+        { name: 'Easy pull-up ramp', meta: '2×5', fields: ['sets','reps'] },
+      ]},
+      { name: 'Main — Volume', exercises: [
+        { name: 'Weighted pull-ups (belt)', meta: '4×5–6 · ~2 RIR', fields: ['sets','reps','weight','rpe'] },
+        { name: 'Wide-grip push-ups', meta: '3×12–15', fields: ['sets','reps','rpe'] },
+        { name: 'Large paralette dips', meta: '3×10–12', fields: ['sets','reps','rpe'] },
+        { name: 'Incline DB press (5kg DBs)', meta: '2×12', fields: ['sets','reps','weight','rpe'] },
+        { name: 'DB lateral raises (2kg)', meta: '2×15', fields: ['sets','reps'] },
+      ]},
+      { name: 'Prehab / Rehab', exercises: [
+        { name: 'Band external rotation', meta: '3×15 per side', fields: ['sets','reps'] },
+        { name: 'Face pulls (band)', meta: '3×15', fields: ['sets','reps'] },
+        { name: 'Loaded tibialis raises', meta: '3×15', fields: ['sets','reps'] },
+      ]},
+      { name: 'Cool-down', exercises: [
+        { name: 'Doorway chest stretch', meta: '30s ×2', fields: ['hold'] },
+        { name: 'Passive lat hang', meta: '2×20s', fields: ['sets','hold'] },
+        { name: "Child's pose", meta: '45s', fields: ['hold'] },
+        { name: 'Forearm stretch', meta: '30s each', fields: ['hold'] },
+        { name: 'Lacrosse ball on pecs/lats', meta: '2 min per side', fields: [] },
+        { name: 'Foot roll (spiky roller)', meta: '1–2 min', fields: [] },
+      ]},
+      { name: 'Run', exercises: [
+        { name: 'Zone 2 run', meta: '~6km — before or after session, flexible', fields: ['rpe'] },
+      ]},
+    ]
+  },
+  Tuesday: {
+    focus: 'Legs Volume + Easy Run',
+    note: 'Zone 2 run ~6km. Home leg day — barbell, kettlebell, step platform, belt for added load. Target ~2 RIR.',
+    phases: [
+      { name: 'Warm-up', exercises: [
+        { name: 'Leg swings', meta: '10 each direction', fields: ['reps'] },
+        { name: 'Ankle mobility — foam wedge rocks', meta: '10 per side', fields: ['reps'] },
+        { name: 'Hip openers on yoga block', meta: '30s per side', fields: ['hold'] },
+        { name: 'Bodyweight squats — ramp', meta: '2×10', fields: ['sets','reps'] },
+        { name: 'Glute bridges', meta: '2×12', fields: ['sets','reps'] },
+      ]},
+      { name: 'Main — Volume', exercises: [
+        { name: 'Barbell RDL', meta: '3×10 · ~2 RIR', fields: ['sets','reps','weight','rpe'] },
+        { name: 'KB goblet squat (12kg)', meta: '3×12 · ~2 RIR', fields: ['sets','reps','rpe'] },
+        { name: 'Weighted step-ups (step platform + belt)', meta: '3×8 per leg · add plate once bodyweight easy', fields: ['sets','reps','weight','rpe'] },
+        { name: 'Bulgarian split squat (bodyweight or DBs)', meta: '3×8 per leg', fields: ['sets','reps','weight','rpe'] },
+        { name: 'Calf raises off step edge', meta: '3×15', fields: ['sets','reps'] },
+        { name: 'Ab wheel rollouts', meta: '3×8', fields: ['sets','reps','rpe'] },
+      ]},
+      { name: 'Prehab / Rehab', exercises: [
+        { name: 'Loaded tibialis raises', meta: '3×15', fields: ['sets','reps'] },
+        { name: 'Banded ankle inversion/eversion', meta: '2×15', fields: ['sets','reps'] },
+        { name: 'Dead bug', meta: '2×10 per side', fields: ['sets','reps'] },
+      ]},
+      { name: 'Cool-down', exercises: [
+        { name: 'Quad stretch', meta: '30s per side', fields: ['hold'] },
+        { name: 'Hamstring stretch', meta: '30s per side', fields: ['hold'] },
+        { name: 'Hip flexor stretch on yoga block', meta: '30s per side', fields: ['hold'] },
+        { name: 'Foam/spiky roll — calves and quads', meta: '2 min', fields: [] },
+      ]},
+      { name: 'Run', exercises: [
+        { name: 'Zone 2 run', meta: '~6km', fields: ['rpe'] },
+      ]},
+    ]
+  },
+  Wednesday: {
+    focus: 'Speed Run + Push + Pull (Intensity)',
+    note: 'Run FIRST. Speed session before any lifting — fresh legs and CNS matter more for speed. Lifting comes after a few minutes recovery. Target ~2 RIR.',
+    phases: [
+      { name: 'Run (do this first)', exercises: [
+        { name: 'Speed run', meta: 'Dynamic warm-up (leg swings, high knees, strides) then speed session', fields: ['rpe'] },
+      ]},
+      { name: 'Warm-up for Lifting (post-run)', exercises: [
+        { name: 'Arm circles', meta: '20 each direction', fields: ['reps'] },
+        { name: 'Band pull-aparts', meta: '2×15', fields: ['sets','reps'] },
+        { name: 'Scap push-ups', meta: '2×8', fields: ['sets','reps'] },
+        { name: 'Wrist prep', meta: '30s', fields: ['hold'] },
+        { name: 'Cat-cow', meta: '10 reps', fields: ['reps'] },
+        { name: 'Moderate push-ups — build-in', meta: '2×8', fields: ['sets','reps'] },
+        { name: 'Easy pull-up ramp', meta: '2×5', fields: ['sets','reps'] },
+      ]},
+      { name: 'Main — Intensity', exercises: [
+        { name: 'Weighted pull-ups (belt)', meta: '4×4–5 · lower reps, added load', fields: ['sets','reps','weight','rpe'] },
+        { name: 'Weighted dips (belt)', meta: '4×6–8', fields: ['sets','reps','weight','rpe'] },
+        { name: 'Deficit push-ups on paralettes (full range)', meta: '3×8', fields: ['sets','reps','rpe'] },
+        { name: 'Slow eccentric push-ups (4s down)', meta: '2×6', fields: ['sets','reps','hold','rpe'] },
+        { name: 'Seated DB shoulder press', meta: '2×10', fields: ['sets','reps','weight','rpe'] },
+      ]},
+      { name: 'Prehab / Rehab', exercises: [
+        { name: 'Band external rotation', meta: '3×15 per side', fields: ['sets','reps'] },
+        { name: 'Rear-delt raises (light DB)', meta: '2×15', fields: ['sets','reps'] },
+        { name: 'Face pulls', meta: '2×15', fields: ['sets','reps'] },
+        { name: 'Loaded tibialis raises', meta: '3×15', fields: ['sets','reps'] },
+      ]},
+      { name: 'Cool-down', exercises: [
+        { name: 'Chest/lat stretch', meta: '30s each', fields: ['hold'] },
+        { name: 'Lacrosse ball rolling (pecs, lats)', meta: '2 min per side', fields: [] },
+        { name: 'Foot roll', meta: '1–2 min', fields: [] },
+      ]},
+    ]
+  },
+  Thursday: {
+    focus: 'Technique Climbing + Light Pull — Gym',
+    note: 'No home session, no run. Technique focus only — not limit bouldering. Recovery between Wednesday intensity and Sunday heavy.',
+    phases: [
+      { name: 'Home Warm-up (before leaving)', exercises: [
+        { name: 'Arm circles', meta: '20 each direction', fields: ['reps'] },
+        { name: 'Band pull-aparts', meta: '2×15', fields: ['sets','reps'] },
+        { name: 'Scap pulls on bar', meta: '2×8', fields: ['sets','reps'] },
+        { name: 'Dead hangs', meta: '2×20s', fields: ['sets','hold'] },
+        { name: 'Wrist circles', meta: '30s each direction', fields: ['hold'] },
+        { name: 'Finger extensor band work', meta: '1×15', fields: ['sets','reps'] },
+      ]},
+      { name: 'At the Gym', exercises: [
+        { name: 'Technique climbing', meta: 'Easy-to-moderate grade. Footwork, body positioning, efficiency. Not to fatigue.', fields: ['rpe'] },
+        { name: 'Light pull-ups — paused/tempo', meta: 'Sub-maximal. Bodyweight or light weight. Technique focus, not load.', fields: ['sets','reps','weight','rpe'] },
+      ]},
+      { name: 'Cool-down (post-gym)', exercises: [
+        { name: 'Finger/forearm stretches', meta: '30s each position', fields: ['hold'] },
+        { name: 'Lacrosse ball on forearms', meta: '2 min per side', fields: [] },
+        { name: 'Lat stretch', meta: '2×20s', fields: ['sets','hold'] },
+        { name: 'Easy walk/shakeout', meta: '5 min', fields: [] },
+      ]},
+    ]
+  },
+  Friday: {
+    focus: 'Full Rest',
+    note: 'Real day off — not a light day. No training, no obligations. A short walk is plenty. Enjoy your evening.',
+    phases: [
+      { name: 'Rest', exercises: [
+        { name: 'Short walk (optional)', meta: 'Only if you want to. Nothing structured needed.', fields: [] },
+      ]},
+    ]
+  },
+  Saturday: {
+    focus: 'Legs Light + Mobility + Easy Run',
+    note: 'Genuinely light day — sub-maximal, technique over effort. This is where dedicated mobility work lives. Zone 2 run ~6km, conversational pace.',
+    phases: [
+      { name: 'Warm-up', exercises: [
+        { name: 'Leg swings', meta: '10 each direction', fields: ['reps'] },
+        { name: 'Ankle mobility — foam wedge rocks', meta: '8 per side', fields: ['reps'] },
+        { name: 'Hip openers on yoga block', meta: '30s per side', fields: ['hold'] },
+      ]},
+      { name: 'Main — Light', exercises: [
+        { name: 'KB goblet squat', meta: '2×10 — well short of failure', fields: ['sets','reps','rpe'] },
+        { name: 'Step-ups', meta: '2×8 per leg', fields: ['sets','reps','rpe'] },
+        { name: 'Single-leg RDL (light DB)', meta: '2×8 per leg', fields: ['sets','reps','weight','rpe'] },
+        { name: 'Calf raises', meta: '2×15', fields: ['sets','reps'] },
+        { name: 'Loaded tibialis raises', meta: '2×15', fields: ['sets','reps'] },
+      ]},
+      { name: 'Mobility & Longevity', exercises: [
+        { name: 'Hip CARs (controlled articular rotations)', meta: '2×5 per side', fields: ['sets','reps'] },
+        { name: 'Ankle CARs', meta: '2×5 per side', fields: ['sets','reps'] },
+        { name: 'Thoracic rotations', meta: '2×8 per side', fields: ['sets','reps'] },
+        { name: '90/90 hip switches', meta: '2×5 per side', fields: ['sets','reps'] },
+        { name: 'Cat-cow flow', meta: '10 reps, slow', fields: ['reps'] },
+      ]},
+      { name: 'Prehab / Rehab', exercises: [
+        { name: 'Banded ankle inversion/eversion', meta: '1×15', fields: ['sets','reps'] },
+        { name: 'Finger extensor bands', meta: '1×15', fields: ['sets','reps'] },
+      ]},
+      { name: 'Cool-down', exercises: [
+        { name: 'Quad/hamstring stretch', meta: '30s each', fields: ['hold'] },
+        { name: 'Hip flexor stretch on yoga block', meta: '30s per side', fields: ['hold'] },
+        { name: 'Foam roll — calves and feet', meta: '1–2 min', fields: [] },
+      ]},
+      { name: 'Run', exercises: [
+        { name: 'Zone 2 run', meta: '~6km — conversational pace, recovery-adjacent', fields: ['rpe'] },
+      ]},
+    ]
+  },
+};
+
+const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+let currentDay = DAY_NAMES[new Date().getDay()];
+let exStates = {};
+
+// ---- Program settings: deload cycle ----
+function getProgramSettings() {
+  let s = JSON.parse(localStorage.getItem('programSettings') || 'null');
+  if (!s) {
+    s = { startDate: new Date().toISOString().slice(0, 10), deloadOffset: 0 };
+    localStorage.setItem('programSettings', JSON.stringify(s));
+  }
+  return s;
+}
+
+function getWeekInfo() {
+  const s = getProgramSettings();
+  const start = new Date(s.startDate + 'T00:00:00');
+  const now = new Date();
+  const diffDays = Math.floor((now - start) / 86400000);
+  const weekNumber = Math.max(1, Math.floor(diffDays / 7) + 1);
+  const isDeload = ((weekNumber - 1 + (s.deloadOffset || 0)) % 4) === 3;
+  return { weekNumber, isDeload };
+}
+
+function updateStartDate(val) {
+  const s = getProgramSettings();
+  s.startDate = val;
+  localStorage.setItem('programSettings', JSON.stringify(s));
+  renderSession();
+  renderSettingsModal();
+}
+
+function updateDeloadOffset(val) {
+  const s = getProgramSettings();
+  s.deloadOffset = parseInt(val);
+  localStorage.setItem('programSettings', JSON.stringify(s));
+  renderSession();
+  renderSettingsModal();
+}
+
+// ---- Deload display: shrink "Main" phase set counts ~40% ----
+function parseSetRep(meta) {
+  const m = meta.match(/(\d+)\s*×\s*(\d+)(?:[–\-](\d+))?/);
+  if (!m) return null;
+  return { sets: parseInt(m[1]), repLow: parseInt(m[2]), repHigh: m[3] ? parseInt(m[3]) : parseInt(m[2]) };
+}
+
+function deloadMeta(meta) {
+  const p = parseSetRep(meta);
+  if (!p) return meta;
+  const newSets = Math.max(1, Math.round(p.sets * 0.6));
+  const rangeStr = p.repHigh !== p.repLow ? `${p.repLow}–${p.repHigh}` : `${p.repLow}`;
+  return meta.replace(/(\d+)\s*×\s*(\d+)(?:[–\-](\d+))?/, `${newSets}×${rangeStr}`) + ' · Deload: ease off load ~20%';
+}
+
+// ---- Progressive overload hints, based on last logged session for this exercise ----
+function getExerciseHistory(name) {
+  const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+  for (const s of sessions) {
+    const ex = s.exercises.find(e => e.name === name && e.reps);
+    if (ex) return ex;
+  }
+  return null;
+}
+
+function progressionHint(name, meta) {
+  const target = parseSetRep(meta);
+  if (!target) return '';
+  const hist = getExerciseHistory(name);
+  if (!hist) return '';
+  const reps = parseInt(hist.reps);
+  if (isNaN(reps)) return '';
+  const rpeNum = hist.rpe ? parseInt(hist.rpe) : null;
+  const last = `Last: ${hist.sets ? hist.sets + '×' : ''}${hist.reps}${hist.weight ? ' @ ' + hist.weight : ''}`;
+  if (reps >= target.repHigh && rpeNum !== null && rpeNum <= 8) {
+    return `↑ ${last} — hit top of range at ~2 RIR. Add load or difficulty this session.`;
+  } else if (reps >= target.repHigh) {
+    return `${last} — at top of range. Progress if that felt controlled.`;
+  } else if (reps < target.repLow) {
+    return `${last} — build back up within the rep range first.`;
+  }
+  return `${last} — keep building reps toward ${target.repHigh}.`;
+}
+
+function getDayData() { return DAYS[currentDay]; }
+
+function buildSetsOptions() {
+  let o = '<option value="">—</option>';
+  for (let i = 1; i <= 10; i++) o += `<option>${i}</option>`;
+  return o;
+}
+
+function buildRepsOptions() {
+  let o = '<option value="">—</option>';
+  for (let i = 1; i <= 30; i++) o += `<option>${i}</option>`;
+  return o;
+}
+
+function buildWeightOptions() {
+  let o = '<option value="">—</option><option value="BW">Bodyweight</option>';
+  for (let i = 1; i <= 120; i++) {
+    o += `<option>${(i * 0.5).toFixed(1)} kg</option>`;
+  }
+  return o;
+}
+
+function buildHoldOptions() {
+  let o = '<option value="">—</option>';
+  for (let i = 1; i <= 60; i++) o += `<option>${i}s</option>`;
+  return o;
+}
+
+function buildRPEOptions() {
+  let o = '<option value="">—</option>';
+  const labels = ['Very easy','Easy','Moderate','Somewhat hard','Hard','Hard+','Very hard','Very hard+','Extremely hard','Max effort'];
+  labels.forEach((l, i) => o += `<option>${i+1} — ${l}</option>`);
+  return o;
+}
+
+function fieldHTML(type, id) {
+  const map = {
+    sets:   { label: 'Sets', opts: buildSetsOptions() },
+    reps:   { label: 'Reps', opts: buildRepsOptions() },
+    weight: { label: 'Weight', opts: buildWeightOptions() },
+    hold:   { label: 'Hold', opts: buildHoldOptions() },
+    rpe:    { label: 'RPE', opts: buildRPEOptions() },
+  };
+  const f = map[type];
+  if (!f) return ''; // guard: unknown field type, skip silently
+  return `<div class="field-group">
+    <div class="field-label">${f.label}</div>
+    <select class="field-select" id="${id}_${type}" onchange="saveState()">${f.opts}</select>
+  </div>`;
+}
+
+function renderSession() {
+  const data = getDayData();
+  const weekInfo = getWeekInfo();
+  exStates = {};
+  let html = '';
+  let exIndex = 0;
+
+  data.phases.forEach(phase => {
+    html += `<div class="phase-block">
+      <div class="phase-header">
+        <span class="phase-label">${phase.name}</span>
+        <div class="phase-line"></div>
+      </div>`;
+
+    const isMainPhase = phase.name.startsWith('Main');
+
+    phase.exercises.forEach(ex => {
+      const id = `ex_${exIndex}`;
+      exStates[id] = { done: false, name: ex.name };
+      const colClass = ex.fields.length === 3 ? 'cols-3' : '';
+
+      let fieldsHTML = ex.fields.length > 0
+        ? `<div class="fields-grid ${colClass}">${ex.fields.map(f => fieldHTML(f, id)).join('')}</div>`
+        : '';
+
+      const displayMeta = (weekInfo.isDeload && isMainPhase) ? deloadMeta(ex.meta) : ex.meta;
+      const hint = progressionHint(ex.name, ex.meta);
+
+      html += `<div class="exercise-card" id="card_${id}">
+        <div class="ex-top" onclick="toggleCard('${id}')">
+          <div class="ex-check">
+            <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
+              <path d="M1 4l3.5 3.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="ex-info">
+            <div class="ex-name">${ex.name}</div>
+            <div class="ex-meta">${displayMeta}</div>
+            ${hint ? `<div class="ex-hint">${hint}</div>` : ''}
+          </div>
+          <div class="ex-expand">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M4 6l4 4 4-4"/>
+            </svg>
+          </div>
+        </div>
+        <div class="ex-fields">
+          ${fieldsHTML}
+          <div class="field-notes">
+            <textarea id="${id}_notes" placeholder="Notes for this exercise..." onchange="saveState()" rows="2"></textarea>
+          </div>
+          <button class="btn-done" onclick="markDone('${id}')">Mark done</button>
+        </div>
+      </div>`;
+      exIndex++;
+    });
+
+    html += `</div>`;
+  });
+
+  document.getElementById('exerciseArea').innerHTML = html;
+  updateHeader();
+  updateProgress();
+  document.getElementById('progressWrap').style.display = 'block';
+}
+
+function toggleCard(id) {
+  const card = document.getElementById(`card_${id}`);
+  card.classList.toggle('expanded');
+}
+
+function markDone(id) {
+  const card = document.getElementById(`card_${id}`);
+  const isDone = card.classList.contains('done');
+  if (isDone) {
+    card.classList.remove('done');
+    card.classList.remove('expanded');
+    exStates[id].done = false;
+    const btn = card.querySelector('.btn-done');
+    btn.textContent = 'Mark done';
+  } else {
+    card.classList.add('done');
+    card.classList.remove('expanded');
+    exStates[id].done = true;
+    const btn = card.querySelector('.btn-done');
+    btn.textContent = '✓ Done';
+  }
+  updateProgress();
+  saveState();
+}
+
+function updateProgress() {
+  const total = Object.keys(exStates).length;
+  const done = Object.values(exStates).filter(s => s.done).length;
+  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+  document.getElementById('progressText').textContent = `${done} of ${total} done`;
+  document.getElementById('progressPct').textContent = `${pct}%`;
+  document.getElementById('progressFill').style.width = `${pct}%`;
+}
+
+function updateHeader() {
+  const data = getDayData();
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  document.getElementById('headerDay').innerHTML = `<em>${currentDay}</em>`;
+  document.getElementById('headerDate').textContent = dateStr;
+  document.getElementById('focusTag').textContent = data.focus;
+  const noteEl = document.getElementById('dayNote');
+  if (data.note) {
+    noteEl.textContent = data.note;
+    noteEl.style.display = 'block';
+  } else {
+    noteEl.style.display = 'none';
+  }
+  const weekInfo = getWeekInfo();
+  const banner = document.getElementById('deloadBanner');
+  if (weekInfo.isDeload) {
+    banner.textContent = `Week ${weekInfo.weekNumber} — Deload week. Main lift sets below are auto-reduced ~40%; ease off load ~20% too.`;
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function saveSession() {
+  const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+  const now = new Date();
+  const exercises = Object.entries(exStates).map(([id, state]) => {
+    const getVal = (field) => {
+      const el = document.getElementById(`${id}_${field}`);
+      return el ? el.value : '';
+    };
+    return {
+      name: state.name,
+      done: state.done,
+      sets: getVal('sets'),
+      reps: getVal('reps'),
+      weight: getVal('weight'),
+      hold: getVal('hold'),
+      rpe: getVal('rpe'),
+      notes: getVal('notes'),
+    };
+  });
+
+  const session = {
+    id: Date.now(),
+    date: now.toISOString(),
+    day: currentDay,
+    focus: getDayData().focus,
+    rpe: document.getElementById('sessionRPE').value,
+    pain: document.getElementById('sessionPain').value,
+    feel: document.getElementById('sessionFeel').value,
+    exercises,
+  };
+
+  sessions.unshift(session);
+  localStorage.setItem('sessions', JSON.stringify(sessions));
+  showToast('Session saved ✓');
+}
+
+function saveState() { /* live state preserved in DOM */ }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function switchView(v) {
+  document.getElementById('viewSession').classList.toggle('active', v === 'session');
+  document.getElementById('viewHistory').classList.toggle('active', v === 'history');
+  document.getElementById('navSession').classList.toggle('active', v === 'session');
+  document.getElementById('navHistory').classList.toggle('active', v === 'history');
+  document.getElementById('progressWrap').style.display = v === 'session' ? 'block' : 'none';
+  if (v === 'history') renderHistory();
+}
+
+function renderHistory() {
+  const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+  const el = document.getElementById('historyList');
+  if (sessions.length === 0) {
+    el.innerHTML = `<div class="history-empty"><p>No sessions yet</p><p>Complete your first session and it'll appear here.</p></div>`;
+    return;
+  }
+  el.innerHTML = sessions.map(s => {
+    const d = new Date(s.date);
+    const dateStr = d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+    const done = s.exercises.filter(e => e.done).length;
+    const total = s.exercises.length;
+    const rpe = s.rpe ? `· RPE ${s.rpe.split('—')[0].trim()}` : '';
+    return `<div class="history-item" onclick="showSessionDetail(${s.id})">
+      <div class="history-date">${dateStr}</div>
+      <div class="history-day">${s.day} — ${s.focus}</div>
+      <div class="history-stats">
+        <span><strong>${done}/${total}</strong> exercises</span>
+        <span>${rpe}</span>
+        ${s.pain ? `<span>${s.pain}</span>` : ''}
+      </div>
+      ${s.feel ? `<div style="margin-top:8px;font-size:0.75rem;color:var(--muted);line-height:1.4">"${s.feel.slice(0,100)}${s.feel.length > 100 ? '…' : ''}"</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function showSessionDetail(id) {
+  const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+  const s = sessions.find(s => s.id === id);
+  if (!s) return;
+  const d = new Date(s.date);
+  const dateStr = d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const exRows = s.exercises.map(e => {
+    const vals = [e.sets && `${e.sets} sets`, e.reps && `${e.reps} reps`, e.weight && e.weight, e.hold && e.hold, e.rpe && `RPE ${e.rpe.split('—')[0].trim()}`].filter(Boolean).join(' · ');
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--stone)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:18px;height:18px;border-radius:50%;background:${e.done ? 'var(--sage)' : 'var(--border)'};flex-shrink:0;display:flex;align-items:center;justify-content:center">
+          ${e.done ? '<svg width="10" height="8" viewBox="0 0 12 9" fill="none"><path d="M1 4l3.5 3.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}
+        </span>
+        <span style="font-size:0.85rem;font-weight:500">${e.name}</span>
+      </div>
+      ${vals ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:4px;padding-left:26px">${vals}</div>` : ''}
+      ${e.notes ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:3px;padding-left:26px;font-style:italic">${e.notes}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const modal = document.getElementById('modal');
+  modal.querySelector('.modal').innerHTML = `
+    <div class="modal-handle"></div>
+    <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:600">${dateStr}</div>
+    <div class="modal-title" style="margin-top:4px">${s.day} — ${s.focus}</div>
+    ${s.rpe ? `<div style="font-size:0.8rem;color:var(--muted);margin-bottom:4px">RPE ${s.rpe}</div>` : ''}
+    ${s.pain ? `<div style="font-size:0.8rem;color:var(--muted);margin-bottom:8px">${s.pain}</div>` : ''}
+    ${s.feel ? `<div style="font-size:0.82rem;font-style:italic;color:var(--ink);background:var(--stone);padding:10px 12px;border-radius:8px;margin-bottom:12px;line-height:1.5">"${s.feel}"</div>` : ''}
+    <div>${exRows}</div>
+    <button class="modal-close" style="margin-top:16px" onclick="resetModal()">Close</button>
+  `;
+  modal.classList.add('open');
+}
+
+function resetModal() {
+  closeModal();
+  setTimeout(() => {
+    renderDayPickerModal();
+  }, 300);
+}
+
+function buildDayPicker() {
+  const picker = document.getElementById('dayPicker');
+  if (!picker) return;
+  picker.innerHTML = DAY_NAMES.map(d =>
+    `<button class="day-btn ${d === currentDay ? 'active' : ''}" onclick="selectDay('${d}')">${d}</button>`
+  ).join('');
+}
+
+function selectDay(day) {
+  currentDay = day;
+  document.querySelectorAll('.day-btn').forEach(b => b.classList.toggle('active', b.textContent === day));
+  renderSession();
+}
+
+function renderDayPickerModal() {
+  document.getElementById('modal').querySelector('.modal').innerHTML = `
+    <div class="modal-handle"></div>
+    <div class="modal-title">Choose a day</div>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px">Auto-detected today. Override if needed.</p>
+    <div class="modal-section-label">Training days</div>
+    <div class="day-picker" id="dayPicker"></div>
+    <button class="modal-close" onclick="closeModal()">Done</button>
+  `;
+  buildDayPicker();
+}
+
+function openModal() {
+  renderDayPickerModal();
+  document.getElementById('modal').classList.add('open');
+}
+
+function renderSettingsModal() {
+  const info = getWeekInfo();
+  const settings = getProgramSettings();
+  document.getElementById('modal').querySelector('.modal').innerHTML = `
+    <div class="modal-handle"></div>
+    <div class="modal-title">Program settings</div>
+    <div class="modal-section-label">Current status</div>
+    <p style="font-size:0.9rem;margin-bottom:14px">
+      Week <strong>${info.weekNumber}</strong> — ${info.isDeload ? '<span style="color:var(--clay);font-weight:600">Deload week</span>' : 'Normal training'}
+    </p>
+    <div class="modal-section-label">Program start date</div>
+    <input type="date" id="startDateInput" value="${settings.startDate}"
+      style="width:100%;background:var(--stone);border:1.5px solid var(--border);border-radius:8px;padding:9px 10px;font-size:0.82rem;font-family:'Inter',sans-serif;color:var(--ink)"
+      onchange="updateStartDate(this.value)">
+    <div class="modal-section-label">Shift deload week</div>
+    <select id="offsetInput" onchange="updateDeloadOffset(this.value)"
+      style="width:100%;background:var(--stone);border:1.5px solid var(--border);border-radius:8px;padding:9px 10px;font-size:0.82rem;font-family:'Inter',sans-serif;color:var(--ink);appearance:none;-webkit-appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239A9585' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 10px center;padding-right:28px">
+      <option value="0" ${(settings.deloadOffset || 0) === 0 ? 'selected' : ''}>No shift — deload on weeks 4, 8, 12…</option>
+      <option value="1" ${settings.deloadOffset === 1 ? 'selected' : ''}>Shift by 1 week</option>
+      <option value="2" ${settings.deloadOffset === 2 ? 'selected' : ''}>Shift by 2 weeks</option>
+      <option value="3" ${settings.deloadOffset === 3 ? 'selected' : ''}>Shift by 3 weeks</option>
+    </select>
+    <p style="font-size:0.72rem;color:var(--muted);margin-top:12px;line-height:1.5">Deload weeks automatically cut sets on your main lifts by about 40% and remind you to ease off load ~20%. Progression hints on each exercise are based on your last logged session for that exercise — log sets, reps, weight, and RPE consistently to get useful suggestions.</p>
+    <button class="modal-close" onclick="closeModal()">Done</button>
+  `;
+}
+
+function openSettings() {
+  renderSettingsModal();
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modal')) closeModal();
+}
+
+// Init
+renderSession();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(r => console.log('SW registered'))
+      .catch(e => console.log('SW failed:', e));
+  });
+}
+</script>
+
+</body>
+</html>

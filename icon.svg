@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#2C2E1E"/>
+  <!-- Horizontal bar -->
+  <rect x="96" y="236" width="320" height="40" rx="20" fill="#C4956A"/>
+  <!-- Left weight -->
+  <rect x="72" y="180" width="48" height="152" rx="16" fill="#7A8C6E"/>
+  <!-- Right weight -->
+  <rect x="392" y="180" width="48" height="152" rx="16" fill="#7A8C6E"/>
+  <!-- Left collar -->
+  <rect x="128" y="210" width="28" height="92" rx="8" fill="#E8C9A8"/>
+  <!-- Right collar -->
+  <rect x="356" y="210" width="28" height="92" rx="8" fill="#E8C9A8"/>
+</svg>
