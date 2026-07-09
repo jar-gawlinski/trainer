@@ -46,3 +46,8 @@ Once started it counts down with a beep + vibration at each transition (work →
 
 **Two honest limitations:** vibration doesn't work on iOS Safari (Apple restriction, not fixable from here), and if your phone's screen locks, the timer pauses like any web page does — it's not a true background timer with push notifications. Keep the screen on during a timed set, or just use it as a rest timer between sets where a few seconds of drift doesn't matter.
 
+## Adding your own exercises
+
+Every section (Warm-up, Main, Prehab/Rehab, Cool-down, Run) has a **+ Add exercise** button at the bottom. Give it a name, an optional target (e.g. "3×10" or "2×20s"), and pick which fields to log — Sets, Reps, Weight, Hold (for timed holds), RPE. Notes and the ⏱ Timer come included automatically, same as every built-in exercise, and the timer auto-detects a sensible work time if you tick "Hold."
+
+Custom exercises are tagged "custom" and show a **Remove exercise** button when expanded. They're saved to that specific day + section and stick around across visits (stored locally on your phone, same as your logged sessions). They also get progression hints once you've logged them at least once, exactly like the built-in exercises.
