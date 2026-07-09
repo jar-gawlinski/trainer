@@ -35,3 +35,14 @@ Tap **Program** in the header to see your current training week and whether it's
 
 Once you've logged a session (sets/reps/weight/RPE) for an exercise, the app remembers it. Next time that exercise comes up, you'll see a small hint under it — e.g. "Last: 3×15 — hit top of range at ~2 RIR. Add load or difficulty this session." The logic: if you hit the top of the target rep range at RPE 8 or below (roughly 2 RIR or easier), it suggests progressing; if you're below the range, it suggests building reps first. This only works well if you log consistently — an exercise you've never logged won't show a hint.
 
+## Set / rest timer
+
+Every exercise card has a **⏱ Timer** button. Tap it to set:
+- **Sets** — defaults to whatever's in that exercise's target (e.g. "3×12" → 3)
+- **Work time** — auto-fills for timed holds (like L-sits or dead hangs) based on the seconds in the exercise description; defaults to 0 for rep-based lifts, which switches the timer to a "tap when done" mode instead of counting down work
+- **Rest time** — defaults to 60s, editable
+
+Once started it counts down with a beep + vibration at each transition (work → rest → next set), and a longer signal when all sets are complete. You can pause, skip a phase, or stop entirely. If you close the timer modal while it's running, a small pill appears at the bottom of the screen showing the live countdown — tap it to reopen.
+
+**Two honest limitations:** vibration doesn't work on iOS Safari (Apple restriction, not fixable from here), and if your phone's screen locks, the timer pauses like any web page does — it's not a true background timer with push notifications. Keep the screen on during a timed set, or just use it as a rest timer between sets where a few seconds of drift doesn't matter.
+
