@@ -1,4 +1,4 @@
-const CACHE = 'train-v10';
+const CACHE = 'train-v11';
 
 const PRECACHE_LOCAL = [
   './index.html',
