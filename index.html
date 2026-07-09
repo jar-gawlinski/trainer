@@ -345,6 +345,81 @@
 
   .btn-timer:active { opacity: 0.7; }
 
+  .custom-tag {
+    display: inline-block;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sage);
+    border: 1px solid var(--sage);
+    border-radius: 6px;
+    padding: 1px 5px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  .btn-add-exercise {
+    width: 100%;
+    margin-top: 4px;
+    background: none;
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 0.78rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .btn-add-exercise:active { opacity: 0.7; }
+
+  .btn-remove {
+    width: 100%;
+    margin-top: 8px;
+    background: none;
+    color: #B5533C;
+    border: none;
+    padding: 8px;
+    font-size: 0.72rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+  }
+
+  .btn-remove:active { opacity: 0.6; }
+
+  .checkbox-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .checkbox-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--stone);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .checkbox-pill.active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+
+  .checkbox-pill input { display: none; }
+
   .btn-done {
     width: 100%;
     margin-top: 12px;
@@ -1046,6 +1121,32 @@ function progressionHint(name, meta) {
 
 function getDayData() { return DAYS[currentDay]; }
 
+// ---- Custom exercises (user-added, stored per day+phase) ----
+function getCustomExercises() {
+  return JSON.parse(localStorage.getItem('customExercises') || '{}');
+}
+
+function saveCustomExercises(data) {
+  localStorage.setItem('customExercises', JSON.stringify(data));
+}
+
+function addCustomExercise(day, phaseName, ex) {
+  const data = getCustomExercises();
+  if (!data[day]) data[day] = {};
+  if (!data[day][phaseName]) data[day][phaseName] = [];
+  data[day][phaseName].push(ex);
+  saveCustomExercises(data);
+}
+
+function removeCustomExercise(phaseName, exId) {
+  const data = getCustomExercises();
+  if (data[currentDay] && data[currentDay][phaseName]) {
+    data[currentDay][phaseName] = data[currentDay][phaseName].filter(e => e.id !== exId);
+    saveCustomExercises(data);
+  }
+  renderSession();
+}
+
 function buildSetsOptions() {
   let o = '<option value="">—</option>';
   for (let i = 1; i <= 10; i++) o += `<option>${i}</option>`;
@@ -1098,6 +1199,7 @@ function fieldHTML(type, id) {
 function renderSession() {
   const data = getDayData();
   const weekInfo = getWeekInfo();
+  const customAll = getCustomExercises();
   exStates = {};
   exDataMap = {};
   let html = '';
@@ -1111,8 +1213,11 @@ function renderSession() {
       </div>`;
 
     const isMainPhase = phase.name.startsWith('Main');
+    const customList = (customAll[currentDay] && customAll[currentDay][phase.name]) || [];
+    const combined = phase.exercises.map(e => ({ ...e, custom: false }))
+      .concat(customList.map(e => ({ ...e, custom: true })));
 
-    phase.exercises.forEach(ex => {
+    combined.forEach(ex => {
       const id = `ex_${exIndex}`;
       exStates[id] = { done: false, name: ex.name };
       exDataMap[id] = ex;
@@ -1133,7 +1238,7 @@ function renderSession() {
             </svg>
           </div>
           <div class="ex-info">
-            <div class="ex-name">${ex.name}</div>
+            <div class="ex-name">${ex.name}${ex.custom ? ' <span class="custom-tag">custom</span>' : ''}</div>
             <div class="ex-meta">${displayMeta}</div>
             ${hint ? `<div class="ex-hint">${hint}</div>` : ''}
           </div>
@@ -1150,11 +1255,13 @@ function renderSession() {
           </div>
           <button class="btn-timer" onclick="openTimer('${id}')">⏱ Timer</button>
           <button class="btn-done" onclick="markDone('${id}')">Mark done</button>
+          ${ex.custom ? `<button class="btn-remove" onclick="removeCustomExercise('${phase.name.replace(/'/g, "\\'")}','${ex.id}')">Remove exercise</button>` : ''}
         </div>
       </div>`;
       exIndex++;
     });
 
+    html += `<button class="btn-add-exercise" onclick="openAddExercise('${phase.name.replace(/'/g, "\\'")}')">+ Add exercise</button>`;
     html += `</div>`;
   });
 
@@ -1640,6 +1747,79 @@ function updateFloatingTimer() {
   } else {
     el.style.display = 'none';
   }
+}
+
+// ---- Add custom exercise ----
+let addExerciseState = null;
+
+function openAddExercise(phaseName) {
+  addExerciseState = {
+    phaseName,
+    fields: { sets: true, reps: true, weight: false, hold: false, rpe: true },
+  };
+  renderAddExerciseModal();
+  document.getElementById('modal').classList.add('open');
+}
+
+function toggleAddField(key) {
+  if (!addExerciseState) return;
+  addExerciseState.fields[key] = !addExerciseState.fields[key];
+  renderAddExerciseModal();
+}
+
+function renderAddExerciseModal() {
+  const s = addExerciseState;
+  if (!s) return;
+  const fieldDefs = [
+    { key: 'sets', label: 'Sets' },
+    { key: 'reps', label: 'Reps' },
+    { key: 'weight', label: 'Weight' },
+    { key: 'hold', label: 'Hold (timed)' },
+    { key: 'rpe', label: 'RPE' },
+  ];
+  const modalBody = document.getElementById('modal').querySelector('.modal');
+  modalBody.innerHTML = `
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add exercise</div>
+    <p style="font-size:0.78rem;color:var(--muted);margin-bottom:12px">Adding to <strong>${currentDay} — ${s.phaseName}</strong></p>
+    <div class="modal-section-label">Exercise name</div>
+    <input type="text" id="newExName" placeholder="e.g. Cossack squats" style="${timerInputStyle}">
+    <div class="modal-section-label">Target (shown under the name)</div>
+    <input type="text" id="newExMeta" placeholder="e.g. 3×10 or 2×20s" style="${timerInputStyle}">
+    <div class="modal-section-label">Fields to log</div>
+    <div class="checkbox-row">
+      ${fieldDefs.map(f => `
+        <label class="checkbox-pill ${s.fields[f.key] ? 'active' : ''}" onclick="toggleAddField('${f.key}')">
+          ${f.label}
+        </label>
+      `).join('')}
+    </div>
+    <p style="font-size:0.68rem;color:var(--muted);margin:6px 0 14px;line-height:1.4">Notes and the ⏱ Timer are included automatically on every exercise. "Hold" marks it as timed, which sets a sensible default work time on the timer.</p>
+    <button class="btn-save" onclick="submitAddExercise()">Add exercise</button>
+    <button class="modal-close" onclick="closeModal()">Cancel</button>
+  `;
+}
+
+function submitAddExercise() {
+  const s = addExerciseState;
+  if (!s) return;
+  const name = document.getElementById('newExName').value.trim();
+  const meta = document.getElementById('newExMeta').value.trim();
+  if (!name) {
+    document.getElementById('newExName').style.borderColor = '#B5533C';
+    return;
+  }
+  const fields = Object.keys(s.fields).filter(k => s.fields[k]);
+  const ex = {
+    id: 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    name,
+    meta: meta || 'Custom exercise',
+    fields,
+  };
+  addCustomExercise(currentDay, s.phaseName, ex);
+  addExerciseState = null;
+  closeModal();
+  renderSession();
 }
 
 // Init
