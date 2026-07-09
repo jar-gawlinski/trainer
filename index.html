@@ -625,6 +625,49 @@
   /* HISTORY VIEW */
   .history-list { padding: 16px; }
 
+  .history-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 4px;
+  }
+
+  .history-header-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.15rem;
+    color: var(--ink);
+  }
+
+  .btn-ghost-small {
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .btn-ghost-small:active { opacity: 0.7; }
+
+  .progress-summary {
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 14px 0 10px;
+  }
+
+  .progress-summary strong { color: var(--ink); }
+
+  .progress-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
   .history-item {
     background: var(--card);
     border: 1.5px solid var(--border);
@@ -783,7 +826,36 @@
 
 <!-- HISTORY VIEW -->
 <div class="view" id="viewHistory">
+  <div class="history-header-row">
+    <div class="history-header-title">History</div>
+    <button class="btn-ghost-small" onclick="switchView('progress')">📈 Progress</button>
+  </div>
   <div class="history-list" id="historyList"></div>
+</div>
+
+<!-- PROGRESS VIEW -->
+<div class="view" id="viewProgress">
+  <div class="history-header-row">
+    <button class="btn-ghost-small" onclick="switchView('history')">← Back</button>
+    <div class="history-header-title">Progress</div>
+    <div style="width:60px"></div>
+  </div>
+  <div style="padding:8px 20px 0">
+    <div class="modal-section-label">Exercise</div>
+    <select id="progressExerciseSelect" class="field-select" onchange="drawProgressChart(this.value)"></select>
+    <div class="progress-summary" id="progressSummary"></div>
+    <canvas id="progressChart" style="width:100%;display:block"></canvas>
+    <div class="progress-empty" id="progressEmpty" style="display:none"></div>
+  </div>
+  <div style="padding:20px 20px 24px">
+    <div class="modal-section-label">Backup</div>
+    <button class="btn-save" style="margin-top:6px" onclick="exportData()">Export data</button>
+    <label class="btn-timer" style="display:block;text-align:center;margin-top:10px;cursor:pointer">
+      Import data
+      <input type="file" accept="application/json" id="importFileInput" style="display:none" onchange="importData(event)">
+    </label>
+    <p style="font-size:0.68rem;color:var(--muted);margin-top:8px;line-height:1.4">Export saves your sessions, custom exercises, and program settings as a file — keep it somewhere safe. Import restores from that file after a reinstall or new phone, so these charts stay accurate.</p>
+  </div>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -1377,10 +1449,12 @@ function showToast(msg) {
 function switchView(v) {
   document.getElementById('viewSession').classList.toggle('active', v === 'session');
   document.getElementById('viewHistory').classList.toggle('active', v === 'history');
+  document.getElementById('viewProgress').classList.toggle('active', v === 'progress');
   document.getElementById('navSession').classList.toggle('active', v === 'session');
-  document.getElementById('navHistory').classList.toggle('active', v === 'history');
+  document.getElementById('navHistory').classList.toggle('active', v === 'history' || v === 'progress');
   document.getElementById('progressWrap').style.display = v === 'session' ? 'block' : 'none';
   if (v === 'history') renderHistory();
+  if (v === 'progress') renderProgress();
 }
 
 function renderHistory() {
@@ -1820,6 +1894,206 @@ function submitAddExercise() {
   addExerciseState = null;
   closeModal();
   renderSession();
+}
+
+// ---- Progress charts ----
+function parseNumericValue(str) {
+  if (!str) return null;
+  const m = String(str).match(/(\d+(\.\d+)?)/);
+  return m ? parseFloat(m[1]) : null;
+}
+
+function getLoggedExerciseNames() {
+  const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+  const names = new Set();
+  sessions.forEach(s => s.exercises.forEach(e => {
+    if (parseNumericValue(e.weight) !== null || parseNumericValue(e.reps) !== null) names.add(e.name);
+  }));
+  return Array.from(names).sort();
+}
+
+function getExerciseSeries(name) {
+  const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+  const points = [];
+  [...sessions].reverse().forEach(s => {
+    const ex = s.exercises.find(e => e.name === name);
+    if (!ex) return;
+    const weightVal = parseNumericValue(ex.weight);
+    const repsVal = parseNumericValue(ex.reps);
+    const value = weightVal !== null ? weightVal : repsVal;
+    if (value === null) return;
+    points.push({ date: s.date, value, kind: weightVal !== null ? 'weight' : 'reps' });
+  });
+  return points;
+}
+
+function renderProgress() {
+  populateProgressExerciseSelect();
+}
+
+function populateProgressExerciseSelect() {
+  const select = document.getElementById('progressExerciseSelect');
+  const names = getLoggedExerciseNames();
+  if (names.length === 0) {
+    select.innerHTML = `<option value="">Nothing logged yet</option>`;
+    document.getElementById('progressChart').style.display = 'none';
+    document.getElementById('progressSummary').textContent = '';
+    const empty = document.getElementById('progressEmpty');
+    empty.style.display = 'block';
+    empty.textContent = 'Log a few sessions with sets/reps or weight, and your exercises will show up here as trend charts.';
+    return;
+  }
+  const prevSelection = select.value;
+  select.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join('');
+  const toSelect = names.includes(prevSelection) ? prevSelection : names[0];
+  select.value = toSelect;
+  drawProgressChart(toSelect);
+}
+
+function drawProgressChart(name) {
+  const canvas = document.getElementById('progressChart');
+  const empty = document.getElementById('progressEmpty');
+  const summary = document.getElementById('progressSummary');
+  if (!canvas || !name) return;
+  const points = getExerciseSeries(name);
+
+  if (points.length < 2) {
+    canvas.style.display = 'none';
+    empty.style.display = 'block';
+    empty.textContent = points.length === 0
+      ? 'No logged data for this exercise yet.'
+      : 'Log this exercise once more to see a trend line.';
+    summary.textContent = '';
+    return;
+  }
+
+  canvas.style.display = 'block';
+  empty.style.display = 'none';
+
+  const first = points[0].value;
+  const last = points[points.length - 1].value;
+  const best = Math.max(...points.map(p => p.value));
+  const unit = points[points.length - 1].kind === 'reps' ? ' reps' : '';
+  const delta = Math.round((last - first) * 10) / 10;
+  const deltaColor = delta > 0 ? 'var(--sage)' : delta < 0 ? '#B5533C' : 'var(--muted)';
+  const deltaStr = delta > 0 ? `+${delta}` : `${delta}`;
+  summary.innerHTML = `${points.length} logged sessions · First: <strong>${first}${unit}</strong> · Last: <strong>${last}${unit}</strong> · Best: <strong>${best}${unit}</strong> · Change: <strong style="color:${deltaColor}">${deltaStr}${unit}</strong>`;
+
+  const dpr = window.devicePixelRatio || 1;
+  const cssWidth = canvas.parentElement.clientWidth;
+  const cssHeight = 220;
+  canvas.width = cssWidth * dpr;
+  canvas.height = cssHeight * dpr;
+  canvas.style.width = cssWidth + 'px';
+  canvas.style.height = cssHeight + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+  const padding = { top: 16, right: 12, bottom: 26, left: 34 };
+  const chartW = cssWidth - padding.left - padding.right;
+  const chartH = cssHeight - padding.top - padding.bottom;
+
+  const values = points.map(p => p.value);
+  let minV = Math.min(...values);
+  let maxV = Math.max(...values);
+  if (minV === maxV) { minV -= 1; maxV += 1; }
+  const rangePad = (maxV - minV) * 0.15;
+  minV -= rangePad;
+  maxV += rangePad;
+
+  const xFor = i => padding.left + (points.length === 1 ? chartW / 2 : (i / (points.length - 1)) * chartW);
+  const yFor = v => padding.top + chartH - ((v - minV) / (maxV - minV)) * chartH;
+
+  ctx.strokeStyle = '#DDD8CF';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 2; i++) {
+    const y = padding.top + (chartH / 2) * i;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(padding.left + chartW, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#C4956A';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const x = xFor(i), y = yFor(p.value);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  ctx.fillStyle = '#C4956A';
+  points.forEach((p, i) => {
+    const x = xFor(i), y = yFor(p.value);
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.fillStyle = '#9A9585';
+  ctx.font = '10px Inter, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(maxV.toFixed(1), padding.left - 6, padding.top + 4);
+  ctx.fillText(minV.toFixed(1), padding.left - 6, padding.top + chartH);
+
+  ctx.textAlign = 'left';
+  const firstDate = new Date(points[0].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const lastDate = new Date(points[points.length - 1].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  ctx.fillText(firstDate, padding.left, cssHeight - 6);
+  ctx.textAlign = 'right';
+  ctx.fillText(lastDate, padding.left + chartW, cssHeight - 6);
+}
+
+// ---- Backup: export / import ----
+function exportData() {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    version: 1,
+    sessions: JSON.parse(localStorage.getItem('sessions') || '[]'),
+    customExercises: JSON.parse(localStorage.getItem('customExercises') || '{}'),
+    programSettings: JSON.parse(localStorage.getItem('programSettings') || 'null'),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateTag = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `train-backup-${dateTag}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Backup exported');
+}
+
+function applyImportedData(obj) {
+  if (!obj || typeof obj !== 'object') throw new Error('Invalid backup file');
+  if (Array.isArray(obj.sessions)) localStorage.setItem('sessions', JSON.stringify(obj.sessions));
+  if (obj.customExercises && typeof obj.customExercises === 'object') localStorage.setItem('customExercises', JSON.stringify(obj.customExercises));
+  if (obj.programSettings && typeof obj.programSettings === 'object') localStorage.setItem('programSettings', JSON.stringify(obj.programSettings));
+  renderSession();
+  renderHistory();
+  populateProgressExerciseSelect();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const obj = JSON.parse(reader.result);
+      applyImportedData(obj);
+      showToast('Data imported');
+    } catch (e) {
+      showToast('Import failed — invalid file');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
 }
 
 // Init
