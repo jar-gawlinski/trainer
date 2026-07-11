@@ -59,3 +59,7 @@ Tucked inside History — tap **📈 Progress** at the top — is a chart screen
 ## Backup: export & import
 
 At the bottom of the Progress screen: **Export data** downloads a JSON file with your full session history, custom exercises, and program settings — save it somewhere safe (Files app, cloud drive, email it to yourself, whatever). **Import data** reads that file back in, which is the way to carry your history over after a reinstall, a new phone, or clearing browser data. Importing merges nothing — it replaces sessions/custom exercises/program settings wholesale with what's in the file, so use a recent export.
+
+## Stopwatch mode
+
+Inside the same ⏱ Timer modal, at the top of the setup screen, there's a Countdown/Stopwatch toggle. Stopwatch counts up freely with no preset time — useful when you don't know how long a hold will last (dead hangs, planks, L-sits pushed to failure). Tap **Lap** to record each set's split without stopping the clock, **Pause** if you need to, and **Stop** when you're done. If the exercise has a Hold field, a **"Use last split as hold time"** button appears at the end and fills it in for you — for splits over 60 seconds (the Hold dropdown's max), it adds the time to Notes instead since the dropdown can't represent it.

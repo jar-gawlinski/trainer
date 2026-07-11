@@ -1633,6 +1633,7 @@ function openTimer(id) {
   const defaultWork = ex.fields.includes('hold') ? (parseHoldSeconds(ex.meta) || 30) : 0;
   timerState = {
     id, name: ex.name,
+    mode: 'countdown',
     sets: target.sets || 3,
     currentSet: 1,
     workSec: defaultWork,
@@ -1641,6 +1642,9 @@ function openTimer(id) {
     remaining: 0,
     intervalId: null,
     paused: false,
+    elapsed: 0,
+    segmentStart: 0,
+    laps: [],
   };
   renderTimerModal();
   document.getElementById('modal').classList.add('open');
@@ -1653,23 +1657,77 @@ function reopenTimer() {
   document.getElementById('floatingTimer').style.display = 'none';
 }
 
+function switchTimerMode(mode) {
+  if (!timerState) return;
+  timerState.mode = mode;
+  renderTimerModal();
+}
+
 function renderTimerModal() {
   const t = timerState;
   if (!t) return;
   const modalBody = document.getElementById('modal').querySelector('.modal');
 
   if (t.phase === 'setup') {
+    const modeToggle = `
+      <div class="checkbox-row" style="margin-bottom:14px">
+        <label class="checkbox-pill ${t.mode === 'countdown' ? 'active' : ''}" onclick="switchTimerMode('countdown')">Countdown</label>
+        <label class="checkbox-pill ${t.mode === 'stopwatch' ? 'active' : ''}" onclick="switchTimerMode('stopwatch')">Stopwatch</label>
+      </div>
+    `;
+    if (t.mode === 'stopwatch') {
+      modalBody.innerHTML = `
+        <div class="modal-handle"></div>
+        <div class="modal-title">${t.name}</div>
+        ${modeToggle}
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:14px;line-height:1.4">Counts up freely. Tap Lap to record each set's time without stopping the clock — handy for holds where you don't know the duration in advance.</p>
+        <button class="btn-save" onclick="beginStopwatch()">Start</button>
+        <button class="modal-close" onclick="closeModal()">Cancel</button>
+      `;
+    } else {
+      modalBody.innerHTML = `
+        <div class="modal-handle"></div>
+        <div class="modal-title">${t.name}</div>
+        ${modeToggle}
+        <div class="modal-section-label">Sets</div>
+        <input type="number" min="1" value="${t.sets}" style="${timerInputStyle}" onchange="timerState.sets=parseInt(this.value)||1">
+        <div class="modal-section-label">Work time (seconds) — 0 for rep-based, tap "done" manually</div>
+        <input type="number" min="0" value="${t.workSec}" style="${timerInputStyle}" onchange="timerState.workSec=parseInt(this.value)||0">
+        <div class="modal-section-label">Rest time (seconds)</div>
+        <input type="number" min="0" value="${t.restSec}" style="${timerInputStyle}" onchange="timerState.restSec=parseInt(this.value)||0">
+        <button class="btn-save" onclick="beginTimer()">Start</button>
+        <button class="modal-close" onclick="closeModal()">Cancel</button>
+      `;
+    }
+  } else if (t.mode === 'stopwatch') {
+    const mm = String(Math.floor(t.elapsed / 60)).padStart(2, '0');
+    const ss = String(t.elapsed % 60).padStart(2, '0');
+    const lapsHTML = t.laps.length > 0
+      ? t.laps.map((l, i) => {
+          const lm = String(Math.floor(l / 60)).padStart(2, '0');
+          const ls = String(l % 60).padStart(2, '0');
+          return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--stone);font-size:0.8rem"><span>Set ${i + 1}</span><span style="font-weight:600">${lm}:${ls}</span></div>`;
+        }).join('')
+      : '';
+    const hasHoldField = (exDataMap[t.id] && exDataMap[t.id].fields.includes('hold'));
     modalBody.innerHTML = `
       <div class="modal-handle"></div>
       <div class="modal-title">${t.name}</div>
-      <div class="modal-section-label">Sets</div>
-      <input type="number" min="1" value="${t.sets}" style="${timerInputStyle}" onchange="timerState.sets=parseInt(this.value)||1">
-      <div class="modal-section-label">Work time (seconds) — 0 for rep-based, tap "done" manually</div>
-      <input type="number" min="0" value="${t.workSec}" style="${timerInputStyle}" onchange="timerState.workSec=parseInt(this.value)||0">
-      <div class="modal-section-label">Rest time (seconds)</div>
-      <input type="number" min="0" value="${t.restSec}" style="${timerInputStyle}" onchange="timerState.restSec=parseInt(this.value)||0">
-      <button class="btn-save" onclick="beginTimer()">Start</button>
-      <button class="modal-close" onclick="closeModal()">Cancel</button>
+      <div style="text-align:center;padding:16px 0">
+        <div style="font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--clay);font-weight:600;margin-bottom:8px">${t.phase === 'done' ? 'STOPPED' : (t.paused ? 'PAUSED' : 'RUNNING')}</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:3.2rem;color:var(--ink)">${mm}:${ss}</div>
+      </div>
+      ${lapsHTML ? `<div style="margin-bottom:10px">${lapsHTML}</div>` : ''}
+      ${t.phase !== 'done' ? `
+        <div style="display:flex;gap:8px">
+          <button class="modal-close" style="flex:1;margin-top:0" onclick="pauseResumeStopwatch()">${t.paused ? 'Resume' : 'Pause'}</button>
+          <button class="btn-save" style="flex:1;margin-top:0" onclick="lapStopwatch()">Lap</button>
+        </div>
+        <button class="modal-close" onclick="stopStopwatch()">Stop</button>
+      ` : `
+        ${hasHoldField && t.laps.length > 0 ? `<button class="btn-save" onclick="fillHoldFromLastLap()">Use last split as hold time</button>` : ''}
+        <button class="modal-close" onclick="closeModal()">Close</button>
+      `}
     `;
   } else {
     const mm = String(Math.floor(t.remaining / 60)).padStart(2, '0');
@@ -1806,18 +1864,101 @@ function stopTimer() {
   updateFloatingTimer();
 }
 
+// ---- Stopwatch mode ----
+function beginStopwatch() {
+  const t = timerState;
+  if (!t) return;
+  t.phase = 'running';
+  t.elapsed = 0;
+  t.segmentStart = 0;
+  t.laps = [];
+  t.paused = false;
+  clearInterval(t.intervalId);
+  renderTimerModal();
+  beep(880, 120);
+  vibrate(100);
+  t.intervalId = setInterval(stopwatchTick, 1000);
+}
+
+function stopwatchTick() {
+  const t = timerState;
+  if (!t || t.paused) return;
+  t.elapsed++;
+  if (document.getElementById('modal').classList.contains('open')) renderTimerModal();
+  else updateFloatingTimer();
+}
+
+function pauseResumeStopwatch() {
+  const t = timerState;
+  if (!t) return;
+  t.paused = !t.paused;
+  renderTimerModal();
+}
+
+function lapStopwatch() {
+  const t = timerState;
+  if (!t) return;
+  const split = t.elapsed - t.segmentStart;
+  t.laps.push(split);
+  t.segmentStart = t.elapsed;
+  beep(880, 100);
+  vibrate(80);
+  renderTimerModal();
+}
+
+function stopStopwatch() {
+  const t = timerState;
+  if (!t) return;
+  const finalSplit = t.elapsed - t.segmentStart;
+  if (finalSplit > 0) t.laps.push(finalSplit);
+  clearInterval(t.intervalId);
+  t.phase = 'done';
+  beep(990, 400);
+  vibrate([200, 100, 200]);
+  renderTimerModal();
+}
+
+function fillHoldFromLastLap() {
+  const t = timerState;
+  if (!t || t.laps.length === 0) return;
+  const lastLap = Math.round(t.laps[t.laps.length - 1]);
+  const holdSelect = document.getElementById(`${t.id}_hold`);
+  if (holdSelect && lastLap >= 1 && lastLap <= 60) {
+    holdSelect.value = `${lastLap}s`;
+    saveState();
+    showToast('Hold time filled in');
+  } else {
+    const mm = Math.floor(lastLap / 60);
+    const ss = lastLap % 60;
+    const label = mm > 0 ? `${mm}m ${ss}s hold` : `${lastLap}s hold`;
+    const notes = document.getElementById(`${t.id}_notes`);
+    if (notes) {
+      notes.value = (notes.value ? notes.value + ' · ' : '') + label;
+      saveState();
+    }
+    showToast(lastLap > 60 ? 'Over 60s — added to notes instead' : 'Added to notes');
+  }
+}
+
 function updateFloatingTimer() {
   const el = document.getElementById('floatingTimer');
   if (!el) return;
   const modalOpen = document.getElementById('modal').classList.contains('open');
   if (timerState && timerState.phase !== 'setup' && timerState.phase !== 'done' && !modalOpen) {
-    const hasCountdown = !(timerState.phase === 'work' && timerState.workSec === 0);
-    const label = timerState.phase === 'work' ? (timerState.workSec === 0 ? 'GO' : 'WORK') : 'REST';
-    const timeStr = hasCountdown
-      ? String(Math.floor(timerState.remaining / 60)).padStart(2, '0') + ':' + String(timerState.remaining % 60).padStart(2, '0')
-      : 'tap when done';
-    el.textContent = `⏱ ${label} ${timeStr} — ${timerState.name}`;
-    el.style.display = 'block';
+    if (timerState.mode === 'stopwatch') {
+      const mm = String(Math.floor(timerState.elapsed / 60)).padStart(2, '0');
+      const ss = String(timerState.elapsed % 60).padStart(2, '0');
+      el.textContent = `⏱ ${timerState.paused ? 'PAUSED' : 'STOPWATCH'} ${mm}:${ss} — ${timerState.name}`;
+      el.style.display = 'block';
+    } else {
+      const hasCountdown = !(timerState.phase === 'work' && timerState.workSec === 0);
+      const label = timerState.phase === 'work' ? (timerState.workSec === 0 ? 'GO' : 'WORK') : 'REST';
+      const timeStr = hasCountdown
+        ? String(Math.floor(timerState.remaining / 60)).padStart(2, '0') + ':' + String(timerState.remaining % 60).padStart(2, '0')
+        : 'tap when done';
+      el.textContent = `⏱ ${label} ${timeStr} — ${timerState.name}`;
+      el.style.display = 'block';
+    }
   } else {
     el.style.display = 'none';
   }
