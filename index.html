@@ -791,7 +791,7 @@
     <div class="footer-fields">
       <div class="footer-row">
         <label>Overall RPE</label>
-        <select id="sessionRPE">
+        <select id="sessionRPE" onchange="saveState()">
           <option value="">— select —</option>
           <option>1 — Very easy</option>
           <option>2 — Easy</option>
@@ -807,7 +807,7 @@
       </div>
       <div class="footer-row">
         <label>Pain or discomfort</label>
-        <select id="sessionPain">
+        <select id="sessionPain" onchange="saveState()">
           <option value="">— select —</option>
           <option>None</option>
           <option>Mild muscle</option>
@@ -817,7 +817,7 @@
       </div>
       <div class="footer-row">
         <label>How it felt</label>
-        <textarea id="sessionFeel" placeholder="What went well, what to adjust..."></textarea>
+        <textarea id="sessionFeel" placeholder="What went well, what to adjust..." onchange="saveState()"></textarea>
       </div>
     </div>
     <button class="btn-save" onclick="saveSession()">Save session</button>
@@ -982,6 +982,7 @@ const DAYS = {
         { name: 'Ab wheel rollouts', meta: '3×8', fields: ['sets','reps','rpe'] },
       ]},
       { name: 'Prehab / Rehab', exercises: [
+        { name: 'Copenhagen plank (top foot on bench)', meta: '3×15–20s per side · adductor strength', fields: ['sets','hold','rpe'] },
         { name: 'Loaded tibialis raises', meta: '3×15', fields: ['sets','reps'] },
         { name: 'Banded ankle inversion/eversion', meta: '2×15', fields: ['sets','reps'] },
         { name: 'Dead bug', meta: '2×10 per side', fields: ['sets','reps'] },
@@ -1077,6 +1078,7 @@ const DAYS = {
       ]},
       { name: 'Main — Light', exercises: [
         { name: 'KB goblet squat', meta: '2×10 — well short of failure', fields: ['sets','reps','rpe'] },
+        { name: 'Bulgarian split squat (bodyweight)', meta: '2×8 per leg — light, technique focus', fields: ['sets','reps','rpe'] },
         { name: 'Step-ups', meta: '2×8 per leg', fields: ['sets','reps','rpe'] },
         { name: 'Single-leg RDL (light DB)', meta: '2×8 per leg', fields: ['sets','reps','weight','rpe'] },
         { name: 'Calf raises', meta: '2×15', fields: ['sets','reps'] },
@@ -1090,6 +1092,7 @@ const DAYS = {
         { name: 'Cat-cow flow', meta: '10 reps, slow', fields: ['reps'] },
       ]},
       { name: 'Prehab / Rehab', exercises: [
+        { name: 'Copenhagen plank (top foot on bench)', meta: '2×15–20s per side — light', fields: ['sets','hold','rpe'] },
         { name: 'Banded ankle inversion/eversion', meta: '1×15', fields: ['sets','reps'] },
         { name: 'Finger extensor bands', meta: '1×15', fields: ['sets','reps'] },
       ]},
@@ -1268,6 +1271,10 @@ function fieldHTML(type, id) {
   </div>`;
 }
 
+function slugify(str) {
+  return String(str).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
 function renderSession() {
   const data = getDayData();
   const weekInfo = getWeekInfo();
@@ -1275,7 +1282,6 @@ function renderSession() {
   exStates = {};
   exDataMap = {};
   let html = '';
-  let exIndex = 0;
 
   data.phases.forEach(phase => {
     html += `<div class="phase-block">
@@ -1290,7 +1296,7 @@ function renderSession() {
       .concat(customList.map(e => ({ ...e, custom: true })));
 
     combined.forEach(ex => {
-      const id = `ex_${exIndex}`;
+      const id = ex.custom ? `custom__${ex.id}` : `${slugify(phase.name)}__${slugify(ex.name)}`;
       exStates[id] = { done: false, name: ex.name };
       exDataMap[id] = ex;
       const colClass = ex.fields.length === 3 ? 'cols-3' : '';
@@ -1330,7 +1336,6 @@ function renderSession() {
           ${ex.custom ? `<button class="btn-remove" onclick="removeCustomExercise('${phase.name.replace(/'/g, "\\'")}','${ex.id}')">Remove exercise</button>` : ''}
         </div>
       </div>`;
-      exIndex++;
     });
 
     html += `<button class="btn-add-exercise" onclick="openAddExercise('${phase.name.replace(/'/g, "\\'")}')">+ Add exercise</button>`;
@@ -1338,6 +1343,7 @@ function renderSession() {
   });
 
   document.getElementById('exerciseArea').innerHTML = html;
+  restoreDraft();
   updateHeader();
   updateProgress();
   document.getElementById('progressWrap').style.display = 'block';
@@ -1434,10 +1440,88 @@ function saveSession() {
 
   sessions.unshift(session);
   localStorage.setItem('sessions', JSON.stringify(sessions));
+  localStorage.removeItem(`draft_${currentDay}`);
   showToast('Session saved ✓');
 }
 
-function saveState() { /* live state preserved in DOM */ }
+function saveState() {
+  const exercises = {};
+  Object.entries(exStates).forEach(([id, state]) => {
+    const getVal = (field) => {
+      const el = document.getElementById(`${id}_${field}`);
+      return el ? el.value : '';
+    };
+    exercises[id] = {
+      name: state.name,
+      done: state.done,
+      sets: getVal('sets'),
+      reps: getVal('reps'),
+      weight: getVal('weight'),
+      hold: getVal('hold'),
+      rpe: getVal('rpe'),
+      notes: getVal('notes'),
+    };
+  });
+  const rpeEl = document.getElementById('sessionRPE');
+  const painEl = document.getElementById('sessionPain');
+  const feelEl = document.getElementById('sessionFeel');
+  const draft = {
+    day: currentDay,
+    savedAt: new Date().toISOString(),
+    exercises,
+    sessionRPE: rpeEl ? rpeEl.value : '',
+    sessionPain: painEl ? painEl.value : '',
+    sessionFeel: feelEl ? feelEl.value : '',
+  };
+  try {
+    localStorage.setItem(`draft_${currentDay}`, JSON.stringify(draft));
+  } catch (e) { /* storage full or unavailable, fail silently */ }
+}
+
+let didInitialRestoreCheck = false;
+
+function restoreDraft() {
+  const raw = localStorage.getItem(`draft_${currentDay}`);
+  if (!raw) { didInitialRestoreCheck = true; return false; }
+  let draft;
+  try { draft = JSON.parse(raw); } catch (e) { didInitialRestoreCheck = true; return false; }
+  if (!draft || !draft.exercises) { didInitialRestoreCheck = true; return false; }
+
+  let restoredAny = false;
+  Object.entries(draft.exercises).forEach(([id, vals]) => {
+    if (!exStates[id]) return; // exercise no longer present (e.g. custom exercise was removed)
+    ['sets', 'reps', 'weight', 'hold', 'rpe', 'notes'].forEach(field => {
+      const el = document.getElementById(`${id}_${field}`);
+      if (el && vals[field]) {
+        el.value = vals[field];
+        restoredAny = true;
+      }
+    });
+    if (vals.done) {
+      exStates[id].done = true;
+      const card = document.getElementById(`card_${id}`);
+      if (card) {
+        card.classList.add('done');
+        const btn = card.querySelector('.btn-done');
+        if (btn) btn.textContent = '✓ Done';
+      }
+      restoredAny = true;
+    }
+  });
+
+  const rpeEl = document.getElementById('sessionRPE');
+  const painEl = document.getElementById('sessionPain');
+  const feelEl = document.getElementById('sessionFeel');
+  if (draft.sessionRPE && rpeEl) { rpeEl.value = draft.sessionRPE; restoredAny = true; }
+  if (draft.sessionPain && painEl) { painEl.value = draft.sessionPain; restoredAny = true; }
+  if (draft.sessionFeel && feelEl) { feelEl.value = draft.sessionFeel; restoredAny = true; }
+
+  if (restoredAny && !didInitialRestoreCheck) {
+    showToast('Restored your in-progress session');
+  }
+  didInitialRestoreCheck = true;
+  return restoredAny;
+}
 
 function showToast(msg) {
   const t = document.getElementById('toast');

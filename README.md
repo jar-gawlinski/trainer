@@ -63,3 +63,11 @@ At the bottom of the Progress screen: **Export data** downloads a JSON file with
 ## Stopwatch mode
 
 Inside the same ⏱ Timer modal, at the top of the setup screen, there's a Countdown/Stopwatch toggle. Stopwatch counts up freely with no preset time — useful when you don't know how long a hold will last (dead hangs, planks, L-sits pushed to failure). Tap **Lap** to record each set's split without stopping the clock, **Pause** if you need to, and **Stop** when you're done. If the exercise has a Hold field, a **"Use last split as hold time"** button appears at the end and fills it in for you — for splits over 60 seconds (the Hold dropdown's max), it adds the time to Notes instead since the dropdown can't represent it.
+
+## In-progress session memory (fixed a real bug)
+
+Earlier versions only saved your session when you hit "Save session" at the end — anything typed before that lived only in memory, so adding a mid-workout exercise or accidentally closing the app could wipe it. That's fixed: every field change now autosaves a draft for that day, and reopening the app (or adding an exercise, changing program settings, anything that redraws the screen) restores it automatically. The draft clears itself once you actually save the session, so old drafts don't reappear as "in progress" the next time that day comes around.
+
+## New exercises
+
+Added **Bulgarian split squat** (already existed on Tuesday's Legs Volume day — now also on Saturday's light day, bodyweight only) and **Copenhagen plank** (adductor/groin strength, using the incline bench for the top-foot elevation — added to both Tuesday and Saturday's Prehab/Rehab, lighter version on Saturday).
